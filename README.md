@@ -1,6 +1,9 @@
 
 # What To Do Frontend
 
+### !!!THIS PROJECT WORKS TOGETHER WITH ITS BACKEND PART!!!
+https://github.com/Kozzmos/What-To-Do-Backend
+
 ## Overview
 
 This is the frontend React application for the **What To Do** todo app.  
