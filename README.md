@@ -1,8 +1,7 @@
 
 # What To Do Frontend
 
-### !!!THIS PROJECT WORKS TOGETHER WITH ITS BACKEND PART!!!
-https://github.com/Kozzmos/What-To-Do-Backend
+### !!! THIS PROJECT WORKS TOGETHER WITH ITS BACKEND PART !!! [HERE](https://github.com/Kozzmos/What-To-Do-Backend)
 
 ## Overview
 
