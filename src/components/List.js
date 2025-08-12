@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import api from "../api";
 import { Form, Button, ListGroup, Badge, CloseButton, Spinner } from "react-bootstrap";
+import { supabase } from "./supabaseClient";
 
 function List({ selectedList, onSelectList }) {
     const [lists, setLists] = useState([]);
@@ -13,14 +14,30 @@ function List({ selectedList, onSelectList }) {
     const [editingName, setEditingName] = useState("");
     const [editingColor, setEditingColor] = useState("#000000");
     const [editingTags, setEditingTags] = useState("");
+    const [userId, setUserId] = useState(null);
 
     useEffect(() => {
-        fetchLists();
+        async function fetchUser() {
+            const {data, error } = await supabase.auth.getUser();
+            if (data?.user){
+                setUserId(data.user.id);
+            }
+        }
+        fetchUser();
     }, []);
 
+    useEffect(() => {
+        if(userId){
+            fetchLists();
+        }
+    }, [userId]);
+
     const fetchLists = () => {
+        console.log("fetchLists userId:", userId);
         setLoading(true);
-        api.get("/lists")
+        api.get("/lists", {
+            params: { user_id: userId }
+        })
             .then(res => {
                 setLists(res.data);
                 setLoading(false);
@@ -35,7 +52,6 @@ function List({ selectedList, onSelectList }) {
         e.preventDefault();
         if (!newListName.trim()) return;
 
-        // Tagleri virgülle ayırıp dizi yapıyoruz
         const tagsArray = newListTags
             .split(",")
             .map(t => t.trim())
@@ -44,7 +60,8 @@ function List({ selectedList, onSelectList }) {
         api.post("/lists", {
             name: newListName,
             tags: tagsArray,
-            color: newListColor
+            color: newListColor,
+            user_id: userId
         })
             .then(res => {
                 setLists([...lists, res.data]);

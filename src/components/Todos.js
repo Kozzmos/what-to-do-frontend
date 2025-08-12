@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import api from "../api";
 import { Form, Button, ListGroup, Badge, Spinner } from "react-bootstrap";
+import {supabase} from "./supabaseClient";
 
 function Todos({ selectedList }) {
     const [todos, setTodos] = useState([]);
@@ -8,38 +9,47 @@ function Todos({ selectedList }) {
     const [statusFilter, setStatusFilter] = useState("all");
     const [searchTerm, setSearchTerm] = useState("");
     const [newTodoText, setNewTodoText] = useState("");
-
     const [editingId, setEditingId] = useState(null);
     const [editingText, setEditingText] = useState("");
     const [editingList, setEditingList] = useState(null);
+    const [editingDueDate, setEditingDueDate] = useState(null);
     const [lists, setLists] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [userId, setUserId] = useState(null);
+    const [newDueDate, setDueDate] = useState(null);
 
     useEffect(() => {
-        fetchLists();
+        async function fetchUser() {
+            const { data } = await supabase.auth.getUser();
+            if (data?.user) {
+                setUserId(data.user.id);
+            }
+        }
+        fetchUser();
     }, []);
 
-    useEffect(() => {
-        fetchTodos();
-    }, [selectedList]);
 
-    const fetchLists = () => {
-        api.get("/lists")
-            .then(res => setLists(res.data))
-            .catch(console.error);
-    };
+    useEffect(() => {
+        if (userId) {
+            fetchTodos();
+        }
+    }, [selectedList, userId]);
 
     const fetchTodos = () => {
+        console.log("fetchTodos userId:", userId);
         setLoading(true);
+
         if (!selectedList || selectedList === "all") {
-            api.get("/todos")
+            api.get("/todos", { params: { user_id: userId } })
                 .then(res => {
                     setTodos(res.data);
                     setLoading(false);
                 })
                 .catch(() => setLoading(false));
         } else {
-            api.get(`/todos?listId=${selectedList.id}`)
+            api.get("/todos", {
+                params: { listId: selectedList.id, user_id: userId }
+            })
                 .then(res => {
                     setTodos(res.data);
                     setLoading(false);
@@ -47,6 +57,7 @@ function Todos({ selectedList }) {
                 .catch(() => setLoading(false));
         }
     };
+
 
     useEffect(() => {
         let filtered = todos;
@@ -69,6 +80,7 @@ function Todos({ selectedList }) {
             text: newTodoText,
             status: "New",
             active: true,
+            due_date: newDueDate || null
         }).then(res => {
             setTodos([...todos, res.data]);
             setNewTodoText("");
@@ -89,18 +101,21 @@ function Todos({ selectedList }) {
         setEditingId(todo.id);
         setEditingText(todo.text);
         setEditingList(todo.list_id || null);
+        setEditingDueDate(todo.due_date);
     };
 
     const cancelEditing = () => {
         setEditingId(null);
         setEditingText("");
         setEditingList(null);
+        setEditingDueDate(null);
     };
 
     const saveEdit = () => {
         api.put(`/todos/${editingId}`, {
             text: editingText,
             list_id: editingList,
+            due_date: editingDueDate,
         }).then(res => {
             setTodos(todos.map(todo => (todo.id === editingId ? res.data : todo)));
             cancelEditing();
@@ -164,6 +179,13 @@ function Todos({ selectedList }) {
                                     onChange={e => setEditingText(e.target.value)}
                                     style={{ maxWidth: "60%" }}
                                 />
+                                <Form.Control
+                                    type="date"
+                                    className="me-2"
+                                    value={editingDueDate}
+                                    onChange={e => setEditingDueDate(e.target.value)}
+                                    style={{ maxWidth: "60%" }}
+                                    />
                                 <Form.Select
                                     value={editingList || ""}
                                     onChange={e => setEditingList(e.target.value || null)}
@@ -184,6 +206,9 @@ function Todos({ selectedList }) {
                                     <Badge bg={todo.status === "Completed" ? "success" : "warning"}>
                                         {todo.status}
                                     </Badge>
+                                </div>
+                                <div>
+                                    <span>{todo.due_date}</span>{" "}
                                 </div>
                                 <div>
                                     <Button
