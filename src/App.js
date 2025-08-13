@@ -5,6 +5,7 @@ import Login from "./components/Login";
 import Register from "./components/Register";
 import { supabase } from "./components/supabaseClient";
 import MainApp from "./components/MainApp";
+import GuestLogin from "./components/GuestLogin";
 
 window.Buffer = window.Buffer || Buffer;
 
@@ -38,6 +39,7 @@ function App() {
             <Routes>
                 <Route path="/login" element={user ? <Navigate to="/"/> : <Login />} />
                 <Route path="/register" element={user ? <Navigate to="/"/> : <Register />} />
+                <Route path="/guest-login" element={user ? <Navigate to="/"/> : <GuestLogin />} />
                 <Route path="/" element={user ? <MainApp user={user} /> : <Navigate to="/login" />} />
             </Routes>
         </Router>
