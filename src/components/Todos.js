@@ -24,15 +24,12 @@ function Todos({ selectedList }) {
     const [lists, setLists] = useState([]);
     const [loading, setLoading] = useState(false);
     const [userId, setUserId] = useState(null);
-    const [newDueDate, setDueDate] = useState(null);
     const [username, setUsername] = useState("");
     const [selectedTagFilter, setSelectedTagFilter] = useState("");
-    const [selectedTags, setSelectedTags] = useState([]);
     const [allTags, setAllTags] = useState([]);
     const [activeScreen, setActiveScreen] = useState("Inbox");
     const [showCalendar, setShowCalendar] = useState(false);
     const [dailyGoal, setDailyGoal] = useState(5);
-    const [dailyGoalInput, setDailyGoalInput] = useState(dailyGoal);
 
     useEffect(() => {
         async function fetchUser() {
