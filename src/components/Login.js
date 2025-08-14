@@ -51,8 +51,8 @@ export default function Login() {
                                     <Button onClick={handleLoginPass} disabled={loading}>
                                         {loading ? <Spinner animation="border" size="sm" /> : "Login"}
                                     </Button>
-                                    <Button variant="outline-primary">
-                                        <Link to="/guest-login">Guest Login</Link>
+                                    <Button variant="warning">
+                                        <Link to="/guest-login" style={{ textDecoration: "inherit", color: "inherit"}}>Guest Login</Link>
                                     </Button>
                                 </div>
                             </Form>

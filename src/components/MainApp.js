@@ -1,13 +1,39 @@
-import React, { useState } from "react";
+import React, {useEffect, useState} from "react";
 import List from "./List";
 import Todos from "./Todos";
 import {supabase} from "./supabaseClient";
 import { useNavigate } from 'react-router-dom';
-import {Container, Row, Col, Button} from "react-bootstrap";
+import {Container, Row, Col, Button, Form} from "react-bootstrap";
 
 function MainApp({ user }) {
     const [selectedList, setSelectedList] = useState(null);
     const navigate = useNavigate();
+    const [userId, setUserId] = useState(null);
+    const [username, setUsername] = useState("");
+
+    useEffect(() => {
+        async function fetchUser() {
+            const { data } = await supabase.auth.getUser();
+            if (data?.user) {
+                setUserId(data.user.id);
+            }
+        }
+        fetchUser();
+    }, []);
+
+    useEffect(() => {
+        async function fetchUsername() {
+            if (userId) {
+                const { data, error } = await supabase
+                    .from("usernames")
+                    .select("username")
+                    .eq("user_id", userId)
+                    .single();
+                if (data) setUsername(data.username);
+            }
+        }
+        fetchUsername();
+    }, [userId]);
 
 
     function handleLogout() {
@@ -22,6 +48,25 @@ function MainApp({ user }) {
 
     return (
         <Container id="MainAppBu" fluid className="p-3" style={{ height: "100vh" }}>
+            {/* Navbar */}
+            <div style={{
+                width: "100%",
+                height: "60px",
+                background: "#f8f9fa",
+                display: "flex",
+                alignItems: "center",
+                padding: "0 24px",
+                marginBottom: "5px",
+                justifyContent: "space-between"
+            }}>
+                <div style={{ fontWeight: "bold" }}>
+                    Hoşgeldin {username ? username : ""}
+                </div>
+                <div style={{ fontSize: "1.5rem", fontWeight: "bold", textAlign: "center" }}>
+                    What To Do <span style={{ fontSize: "0.9rem", color: "#888", marginLeft: 8 }}>v2.3</span>
+                </div>
+                <div style={{ width: 120 }}></div> {/* Sağda boşluk, istersen başka şey ekleyebilirsin */}
+            </div>
             <Row className="h-100">
                 <Col md={4} className="border-end overflow-auto">
                     <List selectedList={selectedList} onSelectList={setSelectedList} user={user} />

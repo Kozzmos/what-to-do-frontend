@@ -5,10 +5,8 @@ import { Link } from "react-router-dom";
 import { Form, Button, Card, Container, Row, Col, Spinner } from "react-bootstrap";
 
 export default function GuestLogin() {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
     const [captchaInput, setCaptchaInput] = useState("");
-    const [showCaptcha, setShowCaptcha] = useState(false);
+    const [showCaptcha, setShowCaptcha] = useState(true);
     const [loading, setLoading] = useState(false);
     const [username, setUsername] = useState("");
 
@@ -18,31 +16,47 @@ export default function GuestLogin() {
     }, [showCaptcha]);
 
     // Normal email + password
-    const handleLoginPass = async () => {
-        setLoading(true);
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        setLoading(false);
-        if (error) {
-            window.alert(error.message);
-        } else {
-            window.alert("Login successful");
-        }
-    };
-
-    // Misafir (anon) giriş — sadece captcha doğrulamasıyla
-    const handleLoginAnon = async () => {
+    const handleLoginGuest = async () => {
         if (!validateCaptcha(captchaInput)) {
             window.alert("Captcha is incorrect!");
             return;
         }
-        const { error } = await supabase.auth.signInAnonymously({
-            // İstersen captcha token'ı server tarafında doğrulamak için options içine koyabilirsin
-            // options: { captchaToken: captchaInput }
-        });
+        setLoading(true);
+        const email = `${username}@gmail.com`;
+        const password = "guest_pass";
+        // Önce login dene
+        const { error, data } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
-            window.alert(error.message);
+            // Kullanıcı yoksa register dene
+            if (error.message.includes("Invalid login credentials")) {
+                const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
+                if (signUpError) {
+                    setLoading(false);
+                    window.alert(signUpError.message);
+                    return;
+                }
+                // Kayıt başarılıysa user_id al ve tabloya ekle
+                const userId = signUpData?.user?.id;
+                if (userId) {
+                    await supabase.from("usernames").insert([
+                        { user_id: userId, username }
+                    ]);
+                }
+                // Kayıt sonrası tekrar login dene
+                const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+                setLoading(false);
+                if (loginError) {
+                    window.alert(loginError.message);
+                } else {
+                    window.alert("Guest account created and logged in!");
+                }
+            } else {
+                setLoading(false);
+                window.alert(error.message);
+            }
         } else {
-            window.alert("Guest login successful");
+            setLoading(false);
+            window.alert("Login successful");
         }
     };
 
@@ -54,42 +68,36 @@ export default function GuestLogin() {
                         <Card.Body>
                             <h2 className="mb-4 text-center">Guest Login</h2>
                             <Form>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Username</Form.Label>
-                                    <Form.Control
-                                        type="username"
-                                        placeholder="Username"
-                                        value={username}
-                                        onChange={(e) => setUsername(e.target.value)}
-                                    />
-                                </Form.Group>
-                                <div className="d-flex gap-2">
-                                    <Button onClick={handleLoginPass} disabled={loading}>
-                                        {loading ? <Spinner animation="border" size="sm" /> : "Login"}
-                                    </Button>
-                                </div>
-                            </Form>
-
-                            {showCaptcha && (
-                                <div className="mt-3">
-                                    <LoadCanvasTemplate />
-                                    <Form.Control
-                                        className="mt-2"
-                                        type="text"
-                                        placeholder="Enter captcha"
-                                        value={captchaInput}
-                                        onChange={(e) => setCaptchaInput(e.target.value)}
-                                    />
-                                    <Button
-                                        variant="warning"
-                                        className="mt-2"
-                                        onClick={handleLoginAnon}
-                                    >
-                                        Continue as Guest
-                                    </Button>
-                                </div>
-                            )}
-
+                            <Form.Group className="mb-3">
+                                <Form.Label>Username</Form.Label>
+                                <Form.Control
+                                    type="username"
+                                    placeholder="Username"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                />
+                            </Form.Group>
+                                {showCaptcha && (
+                                    <div className="mt-3">
+                                        <LoadCanvasTemplate />
+                                        <Form.Control
+                                            className="mt-2"
+                                            type="text"
+                                            placeholder="Enter captcha"
+                                            value={captchaInput}
+                                            onChange={(e) => setCaptchaInput(e.target.value)}
+                                        />
+                                        <Button
+                                            variant="warning"
+                                            className="mt-2"
+                                            onClick={handleLoginGuest}
+                                            disabled={loading}
+                                        >
+                                            {loading ? <Spinner animation="border" size="sm" /> : "Continue as Guest"}
+                                        </Button>
+                                    </div>
+                                )}
+                        </Form>
                             <hr />
                             <div className="text-center">
                                 <span>You have a normal account? </span>
