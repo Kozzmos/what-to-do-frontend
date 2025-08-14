@@ -5,7 +5,6 @@ import {supabase} from "./supabaseClient";
 import { FaRegCalendarAlt, FaTrophy, FaCheckCircle } from "react-icons/fa";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
-import Modal from "react-bootstrap/Modal";
 
 
 function Todos({ selectedList }) {
