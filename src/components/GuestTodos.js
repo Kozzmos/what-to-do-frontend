@@ -7,7 +7,7 @@ import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 
 
-function Todos({ selectedList }) {
+function GuestTodos({ selectedList }) {
     const [todos, setTodos] = useState([]);
     const [filteredTodos, setFilteredTodos] = useState([]);
     const [statusFilter, setStatusFilter] = useState("all");
@@ -29,6 +29,9 @@ function Todos({ selectedList }) {
     const [activeScreen, setActiveScreen] = useState("Inbox");
     const [showCalendar, setShowCalendar] = useState(false);
     const [dailyGoal, setDailyGoal] = useState(5);
+    const [todayCount, setTodayCount] = useState(0);
+    const [lastCountDate, setLastCountDate] = useState(new Date().toDateString());
+
 
     useEffect(() => {
         async function fetchUser() {
@@ -60,16 +63,6 @@ function Todos({ selectedList }) {
         }
     }, [selectedList, userId]);
 
-    useEffect(() => {
-        // todos değiştiğinde tüm etiketleri topla
-        const tagSet = new Set();
-        todos.forEach(todo => {
-            if (todo.tags && Array.isArray(todo.tags)) {
-                todo.tags.forEach(tag => tagSet.add(tag));
-            }
-        });
-        setAllTags(Array.from(tagSet));
-    }, [todos]);
 
     const fetchTodos = () => {
         console.log("fetchTodos userId:", userId);
@@ -124,13 +117,24 @@ function Todos({ selectedList }) {
             active: true,
             due_date: newTodoDueDate || null,
             tags: tagsArray
-        }).then(res => {
-            setTodos([...todos, res.data]);
-            setNewTodoText("");
-            setNewTodoDueDate("");
-            setNewTodoTags("");
-        }).catch(console.error);
+        })
+            .then(res => {
+                setTodos([...todos, res.data]);
+                setNewTodoText("");
+                setNewTodoDueDate("");
+                setNewTodoTags("");
+            })
+            .catch(err => {
+                if (err.response && err.response.status === 403) {
+                    window.alert(err.response.data.error || "Günlük limit aşıldı!");
+                } else {
+                    console.error(err);
+                    window.alert("Bir hata oluştu.");
+                }
+            });
     };
+
+
 
     const deleteTodo = (id) => {
         if (!window.confirm("Bu yapılacak öğeyi silmek istediğine emin misin?")) return;
@@ -140,36 +144,6 @@ function Todos({ selectedList }) {
                 setTodos(todos.filter(t => t.id !== id));
             })
             .catch(console.error);
-    };
-
-    const startEditing = (todo) => {
-        setEditingId(todo.id);
-        setEditingText(todo.text);
-        setEditingList(todo.list_id || null);
-        setEditingDueDate(todo.due_date ? todo.due_date.slice(0, 10) : "");
-        setEditingTags(todo.tags ? todo.tags.join(",") : "");
-    };
-
-    const cancelEditing = () => {
-        setEditingId(null);
-        setEditingText("");
-        setEditingList(null);
-        setEditingDueDate(null);
-        setEditingTags("");
-    };
-
-    const saveEdit = () => {
-        const tagsArray = editingTags.split(",").map(t => t.trim()).filter(t => t !== "");
-        api.put(`/todos/${editingId}`, {
-            text: editingText,
-            list_id: editingList,
-            due_date: editingDueDate,
-            tags: tagsArray,
-        }).then(res => {
-            setTodos(todos.map(todo => (todo.id === editingId ? res.data : todo)));
-            cancelEditing();
-            fetchTodos();
-        }).catch(console.error);
     };
 
     const updateTodoStatus = (id, status) => {
@@ -220,24 +194,6 @@ function Todos({ selectedList }) {
         const today = new Date();
         today.setHours(0,0,0,0);
 
-        if (activeScreen === "Inbox") {
-            filtered = filtered.filter(todo => !todo.due_date);
-        } else if (activeScreen === "Today") {
-            filtered = filtered.filter(todo => {
-                if (!todo.due_date) return false;
-                const due = new Date(todo.due_date);
-                due.setHours(0,0,0,0);
-                return due <= today;
-            });
-        } else if (activeScreen === "Upcoming") {
-            filtered = filtered.filter(todo => {
-                if (!todo.due_date) return false;
-                const due = new Date(todo.due_date);
-                due.setHours(0,0,0,0);
-                return due > today;
-            });
-        }
-
         setFilteredTodos(filtered);
     }, [todos, statusFilter, selectedTagFilter, searchTerm, activeScreen]);
 
@@ -247,6 +203,8 @@ function Todos({ selectedList }) {
         const today = new Date();
         return completed.toDateString() === today.toDateString();
     }).length;
+
+
 
     return (
         <>
@@ -262,18 +220,6 @@ function Todos({ selectedList }) {
                         <option value="Completed">Tamamlandı</option>
                     </Form.Select>
                 </Form.Group>
-                <Form.Group controlId="tagFilter" className="d-flex align-items-center ms-2">
-                    <Form.Label className="me-2 mb-0">Etiket:</Form.Label>
-                    <Form.Select
-                        value={selectedTagFilter}
-                        onChange={e => setSelectedTagFilter(e.target.value)}
-                    >
-                        <option value="">Tümü</option>
-                        {allTags.map(tag => (
-                            <option key={tag} value={tag}>{tag}</option>
-                        ))}
-                    </Form.Select>
-                </Form.Group>
                 <Form.Group controlId="searchTerm" className="d-flex align-items-center flex-grow-1">
                     <Form.Control
                         type="search"
@@ -282,6 +228,7 @@ function Todos({ selectedList }) {
                         onChange={e => setSearchTerm(e.target.value)}
                     />
                 </Form.Group>
+                <Button onClick={addTodo}>Ekle</Button>
             </Form>
 
             <Form className="mb-3 d-flex gap-2">
@@ -296,13 +243,6 @@ function Todos({ selectedList }) {
                     onChange={e => setNewTodoDueDate(e.target.value)}
                     style={{ maxWidth: "160px" }}
                 />
-                <Form.Control
-                    placeholder="Etiketler (virgülle ayır)"
-                    value={newTodoTags}
-                    onChange={e => setNewTodoTags(e.target.value)}
-                    style={{ maxWidth: "200px" }}
-                />
-                <Button onClick={addTodo}>Ekle</Button>
             </Form>
 
             <div className="mb-3 d-flex gap-2">
@@ -311,18 +251,6 @@ function Todos({ selectedList }) {
                     onClick={() => setActiveScreen("Inbox")}
                 >
                     Inbox
-                </Button>
-                <Button
-                    variant={activeScreen === "Today" ? "primary" : "outline-primary"}
-                    onClick={() => setActiveScreen("Today")}
-                >
-                    Today
-                </Button>
-                <Button
-                    variant={activeScreen === "Upcoming" ? "primary" : "outline-primary"}
-                    onClick={() => setActiveScreen("Upcoming")}
-                >
-                    Upcoming
                 </Button>
                 <div className="d-flex align-items-center" style={{marginLeft: "auto", marginRight: "10px"}}>
                     <span style={{ fontWeight: "bold", marginRight: "8px" }}>
@@ -395,104 +323,54 @@ function Todos({ selectedList }) {
                     />
                 </div>
             ) : (
-            <ListGroup>
-                {filteredTodos.map(todo => (
-                    <ListGroup.Item
-                        key={todo.id}
-                        className="d-flex justify-content-between align-items-center"
-                    >
-                        {editingId === todo.id ? (
-                            <>
-                                <Form.Control
-                                    className="me-2"
-                                    value={editingText}
-                                    onChange={e => setEditingText(e.target.value)}
-                                    style={{ maxWidth: "60%" }}
-                                />
-                                <Form.Control
-                                    type="date"
-                                    className="me-2"
-                                    value={editingDueDate || ""}
-                                    onChange={e => setEditingDueDate(e.target.value)}
-                                    style={{ maxWidth: "160px" }}
-                                />
-                                <Form.Control
-                                    placeholder="Etiketler (virgülle ayır)"
-                                    value={editingTags}
-                                    onChange={e => setEditingTags(e.target.value)}
-                                    style={{ maxWidth: "200px" }}
-                                />
-                                <Form.Select
-                                    value={editingList ? String(editingList) : ""}
-                                    onChange={e => setEditingList(e.target.value)}
-                                    style={{ maxWidth: "30%" }}
-                                >
-                                    {lists.map(list => (
-                                        <option key={list.id} value={String(list.id)}>{list.name}</option>
-                                    ))}
-                                </Form.Select>
-                                <Button variant="success" size="sm" className="ms-2" onClick={saveEdit}>Kaydet</Button>
-                                <Button variant="secondary" size="sm" className="ms-2" onClick={cancelEditing}>İptal</Button>
-                            </>
-                        ) : (
-                            <>
-                                <div>
-                                    <strong>{todo.text}</strong>{" "}
-                                    <Badge bg={todo.status === "Completed" ? "success" : "warning"}>
-                                        {todo.status}
-                                    </Badge>
-                                    {todo.tags && todo.tags.length > 0 && (
-                                        <span className="ms-2">
-                                            {todo.tags.map((tag, i) => (
-                                            <Badge key={i} bg="info" className="me-1">{tag}</Badge>
-                                            ))}
-                                        </span>
-                                    )}
-                                </div>
-                                <div>
-                                    {todo.due_date && (
-                                        <Badge bg="light" text="dark" className="d-flex align-items-center" style={{ fontSize: "0.95em", padding: "6px 10px" }}>
-                                            <FaRegCalendarAlt className="me-1" />
-                                            {new Date(todo.due_date).toLocaleDateString("tr-TR")}
+                <ListGroup>
+                    {filteredTodos.map(todo => (
+                        <ListGroup.Item
+                            key={todo.id}
+                            className="d-flex justify-content-between align-items-center"
+                        >
+                                <>
+                                    <div>
+                                        <strong>{todo.text}</strong>{" "}
+                                        <Badge bg={todo.status === "Completed" ? "success" : "warning"}>
+                                            {todo.status}
                                         </Badge>
-                                    )}
-                                </div>
-                                <div>
-                                    <Button
-                                        size="sm"
-                                        variant="outline-primary"
-                                        className="me-2"
-                                        onClick={() => startEditing(todo)}
-                                    >
-                                        Düzenle
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        variant="outline-danger"
-                                        className="me-2"
-                                        onClick={() => deleteTodo(todo.id)}
-                                    >
-                                        Sil
-                                    </Button>
-                                    {todo.status !== "Completed" && (
+                                    </div>
+                                    <div>
+                                        {todo.due_date && (
+                                            <Badge bg="light" text="dark" className="d-flex align-items-center" style={{ fontSize: "0.95em", padding: "6px 10px" }}>
+                                                <FaRegCalendarAlt className="me-1" />
+                                                {new Date(todo.due_date).toLocaleDateString("tr-TR")}
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <div>
                                         <Button
                                             size="sm"
-                                            variant="outline-success"
-                                            onClick={() => updateTodoStatus(todo.id, "Completed")}
+                                            variant="outline-danger"
+                                            className="me-2"
+                                            onClick={() => deleteTodo(todo.id)}
                                         >
-                                            Tamamla
+                                            Sil
                                         </Button>
-                                    )}
-                                </div>
-                            </>
-                        )}
-                    </ListGroup.Item>
-                ))}
-            </ListGroup>
+                                        {todo.status !== "Completed" && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline-success"
+                                                onClick={() => updateTodoStatus(todo.id, "Completed")}
+                                            >
+                                                Tamamla
+                                            </Button>
+                                        )}
+                                    </div>
+                                </>
+                        </ListGroup.Item>
+                    ))}
+                </ListGroup>
             )}
 
         </>
     );
 }
 
-export default Todos;
+export default GuestTodos;
