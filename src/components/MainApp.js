@@ -63,7 +63,7 @@ function MainApp({ user }) {
                     Hoşgeldin {username ? username : ""}
                 </div>
                 <div style={{ fontSize: "1.5rem", fontWeight: "bold", textAlign: "center" }}>
-                    What To Do <span style={{ fontSize: "0.9rem", color: "#888", marginLeft: 8 }}>v2.3</span>
+                    What To Do <span style={{ fontSize: "0.9rem", color: "#888", marginLeft: 8 }}>v3.0</span>
                 </div>
                 <div style={{ width: 120 }}></div> {/* Sağda boşluk, istersen başka şey ekleyebilirsin */}
             </div>

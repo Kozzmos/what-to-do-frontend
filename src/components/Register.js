@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { supabase } from "./supabaseClient";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // 👈 useNavigate eklendi
 import { Form, Button, Card, Container, Row, Col } from "react-bootstrap";
-import {data} from "autoprefixer";
 
 export default function Register() {
     const [email, setEmail] = useState("");
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const navigate = useNavigate(); // 👈 hook
 
     const handleRegister = async () => {
         const { data, error } = await supabase.auth.signUp({
@@ -19,7 +19,10 @@ export default function Register() {
             alert(error.message);
             return;
         }
+
         const { data: userData, error: userError } = await supabase.auth.getUser();
+
+        handleLogout();
 
         if (userError || !userData?.user) {
             alert("Kullanıcı bilgisi alınamadı.");
@@ -27,6 +30,8 @@ export default function Register() {
         }
 
         const userId = userData.user.id;
+
+
 
         const { error: insertError } = await supabase
             .from("usernames")
@@ -37,9 +42,19 @@ export default function Register() {
             return;
         }
 
-        alert("Kayıt başarılı, giriş yapabilirsiniz.");
+        alert("Kayıt başarılı! Giriş sayfasına yönlendiriliyorsunuz.");
+
     };
 
+    function handleLogout() {
+        supabase.auth.signOut()
+            .then(() => {
+                navigate("/login");
+            })
+            .catch(error => {
+                console.error('Logout error:', error);
+            });
+    }
 
     return (
         <Container className="mt-5">
@@ -61,7 +76,7 @@ export default function Register() {
                                 <Form.Group className="mb-3">
                                     <Form.Label>Username</Form.Label>
                                     <Form.Control
-                                        type="username"
+                                        type="text"
                                         placeholder="Username"
                                         value={username}
                                         onChange={(e) => setUsername(e.target.value)}

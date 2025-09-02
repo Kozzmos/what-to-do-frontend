@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { loadCaptchaEnginge, LoadCanvasTemplate, validateCaptcha } from "react-simple-captcha";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Form, Button, Card, Container, Row, Col, Spinner } from "react-bootstrap";
+
 
 export default function GuestLogin() {
     const [captchaInput, setCaptchaInput] = useState("");
@@ -10,9 +11,14 @@ export default function GuestLogin() {
     const [loading, setLoading] = useState(false);
     const [username, setUsername] = useState("");
 
+    const navigate = useNavigate();
+
     // Captcha sadece misafir girişi için açılıyor
     useEffect(() => {
         if (showCaptcha) loadCaptchaEnginge(6);
+
+        const randomUsername = `guest_${Math.floor(10000 + Math.random() * 90000)}`;
+        setUsername(randomUsername);
     }, [showCaptcha]);
 
     // Normal email + password
@@ -49,6 +55,7 @@ export default function GuestLogin() {
                     window.alert(loginError.message);
                 } else {
                     window.alert("Guest account created and logged in!");
+                    navigate("/guest");
                 }
             } else {
                 setLoading(false);
@@ -57,6 +64,7 @@ export default function GuestLogin() {
         } else {
             setLoading(false);
             window.alert("Login successful");
+            navigate("/guest");
         }
     };
 
@@ -77,6 +85,8 @@ export default function GuestLogin() {
                                     onChange={(e) => setUsername(e.target.value)}
                                 />
                             </Form.Group>
+                                <span
+                                style={{fontStyle: "italic", }}>-If you know your username you can type in</span>
                                 {showCaptcha && (
                                     <div className="mt-3">
                                         <LoadCanvasTemplate />

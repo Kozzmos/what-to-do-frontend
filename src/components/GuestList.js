@@ -3,7 +3,7 @@ import api from "../api";
 import { Form, Button, ListGroup, Badge, CloseButton, Spinner } from "react-bootstrap";
 import { supabase } from "./supabaseClient";
 
-function List({ selectedList, onSelectList }) {
+function GuestList({ selectedList, onSelectList }) {
     const [lists, setLists] = useState([]);
     const [newListName, setNewListName] = useState("");
     const [newListColor, setNewListColor] = useState("#2196f3"); // default mavi
@@ -15,8 +15,6 @@ function List({ selectedList, onSelectList }) {
     const [editingColor, setEditingColor] = useState("#000000");
     const [editingTags, setEditingTags] = useState("");
     const [userId, setUserId] = useState(null);
-    const [selectedListTagFilter, setSelectedListTagFilter] = useState("");
-    const [allListTags, setAllListTags] = useState([]);
 
     useEffect(() => {
         async function fetchUser() {
@@ -86,10 +84,9 @@ function List({ selectedList, onSelectList }) {
             .catch(console.error);
     };
 
-    const filteredLists = lists
-        .filter(list => list.name.toLowerCase().includes(searchTerm.toLowerCase()))
-        .filter(list => !selectedListTagFilter || (list.tags && list.tags.includes(selectedListTagFilter)));
-
+    const filteredLists = lists.filter(list =>
+        list.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     const startEditing = (list) => {
         setEditingId(list.id);
@@ -121,18 +118,6 @@ function List({ selectedList, onSelectList }) {
             .catch(console.error);
     };
 
-    useEffect(() => {
-        // Tüm listeler yüklendikten sonra tagleri topla
-        const tagSet = new Set();
-        lists.forEach(list => {
-            if(list.tags && Array.isArray(list.tags)){
-                list.tags.forEach(tag => tagSet.add(tag));
-            }
-        });
-        setAllListTags(Array.from(tagSet));
-    }, [lists]);
-
-
     return (
         <>
             <h2>Listeler</h2>
@@ -147,29 +132,7 @@ function List({ selectedList, onSelectList }) {
 
             {loading && <div className="text-center"><Spinner animation="border" /></div>}
 
-            <Form.Group controlId="listTagFilter" className="mb-3">
-                <Form.Label>Liste Tag Filtreleme:</Form.Label>
-                <Form.Select
-                    value={selectedListTagFilter}
-                    onChange={e => setSelectedListTagFilter(e.target.value)}
-                >
-                    <option value="">Tümü</option>
-                    {allListTags.map(tag => (
-                        <option key={tag} value={tag}>{tag}</option>
-                    ))}
-                </Form.Select>
-            </Form.Group>
-
-
             <ListGroup>
-                <ListGroup.Item
-                    active={selectedList === "all"}
-                    onClick={() => onSelectList("all")}
-                    style={{ cursor: "pointer" }}
-                >
-                    Tüm Listeler
-                </ListGroup.Item>
-
                 {filteredLists.map(list => (
                     <ListGroup.Item
                         key={list.id}
@@ -280,4 +243,4 @@ function List({ selectedList, onSelectList }) {
     );
 }
 
-export default List;
+export default GuestList;
